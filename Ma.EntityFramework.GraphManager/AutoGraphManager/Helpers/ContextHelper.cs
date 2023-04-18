@@ -253,8 +253,8 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             bool duplicatesFoundAndEliminatedFlag = false;
             if (filterExpression != null)
             {
-                /// This is used instead of Context.Set<TEntity>().Local
-                /// to improve perfermance.
+                // This is used instead of Context.Set<TEntity>().Local
+                // to improve performance.
                 var duplicateEntityFromLocal = Context
                     .ChangeTracker
                     .Entries<TEntity>()
