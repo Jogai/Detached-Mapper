@@ -13,6 +13,8 @@ using Ma.EntityFramework.GraphManager.DataStorage;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Abstract;
 using Ma.EntityFramework.GraphManager.ManualGraphManager;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {

@@ -1,15 +1,13 @@
 ﻿using Ma.EntityFramework.GraphManager.ManualGraphManager.Abstract;
 using Ma.EntityFramework.GraphManager.Models;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Core.Objects;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
 {
     public interface IContextHelper
     {
-        DbContext Context { get; set; }
-        ObjectContext ObjectContext { get; }
+        DbContext Context { get; }
         HelperStore Store { get; }
         IEnumerable<NavigationDetail> GetNavigationDetails();
         List<RelationshipDetail> GetForeignKeyDetails();

@@ -1,20 +1,17 @@
 ﻿using Ma.EntityFramework.GraphManager.AutoGraphManager.Abstract;
 using System;
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager
 {
     public class AutoGraphManager
         : IAutoGraphManager
     {
-        internal DbContext Context { get; set; }
+        internal DbContext Context { get; }
 
         public AutoGraphManager(DbContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-
-            Context = context;
+            Context = context ?? throw new ArgumentNullException(nameof(context));
         }
     }
 }
