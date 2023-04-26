@@ -1,7 +1,7 @@
 ﻿using Ma.EntityFramework.GraphManager.Models;
 using System.Collections.Generic;
-using System.Data.Entity.Core.Metadata.Edm;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
 {
@@ -38,7 +38,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
         /// Get simple properties of entity.
         /// </summary>
         /// <returns>Simple properties of entity.</returns>
-        List<EdmProperty> GetSimpleEntityProperties();
+        List<IProperty> GetSimpleEntityProperties();
 
         /// <summary>
         /// Get navigation details according to name of type

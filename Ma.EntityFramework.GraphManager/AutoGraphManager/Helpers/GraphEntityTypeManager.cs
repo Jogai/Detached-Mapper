@@ -1,47 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Core.Metadata.Edm;
 using System.Linq;
 using Ma.EntityFramework.GraphManager.Models;
 using System.Reflection;
 using Ma.EntityFramework.GraphManager.DataStorage;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {
     internal class GraphEntityTypeManager
         : IGraphEntityTypeManager
     {
-        private IContextFactory ContextFactory { get; set; }
-        internal string EntityTypeName { get; private set; }
+        private readonly IContextFactory _contextFactory;
+        private readonly IContextHelper _contextHelper;
+        private readonly string _entityTypeName;
+        private readonly IEntityType _entityType;
+        
 
-        public GraphEntityTypeManager(IContextFactory contextFactory,
+        public GraphEntityTypeManager(
+            IContextFactory contextFactory,
             string entityTypeName)
         {
-            if (contextFactory == null)
-                throw new ArgumentNullException(nameof(contextFactory));
-
             if (string.IsNullOrEmpty(entityTypeName))
                 throw new ArgumentNullException(nameof(entityTypeName));
 
-            ContextFactory = contextFactory;
-            EntityTypeName = entityTypeName;
-        }
-
-        private IContextHelper ContextHelper
-        {
-            get { return ContextFactory.GetContextHelper(); }
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+            _contextHelper = contextFactory.GetContextHelper();
+            
+            _entityTypeName = entityTypeName;
+            _entityType = GetEntityType();
         }
 
         private DbContext Context
         {
-            get { return ContextHelper.Context; }
+            get { return _contextHelper.Context; }
         }
 
         private HelperStore Store
         {
-            get { return ContextHelper.Store; }
+            get { return _contextHelper.Store; }
         }
 
         /// <summary>
@@ -50,11 +50,11 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// <returns>List of primary keys.</returns>
         public List<string> GetPrimaryKeys()
         {
-            IEnumerable<string> primaryKeys = ContextHelper
+            IEnumerable<string> primaryKeys = _contextHelper
                 .ObjectContext
                 .MetadataWorkspace
                 .GetItems<EntityType>(DataSpace.CSpace)
-                .FirstOrDefault(m => m.Name.Equals(EntityTypeName))
+                .FirstOrDefault(m => m.Name.Equals(_entityTypeName))
                 .KeyMembers
                 .Select(m => m.Name);
 
@@ -69,11 +69,11 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         {
             bool hasStoreGeneratedKey = false;
 
-            EntityType entityType = ContextHelper
+            EntityType entityType = _contextHelper
                 .ObjectContext
                 .MetadataWorkspace
                 .GetItems<EntityType>(DataSpace.SSpace)
-                .Where(m => m.Name.Equals(EntityTypeName))
+                .Where(m => m.Name.Equals(_entityTypeName))
                 .FirstOrDefault();
 
             if (entityType != null)
@@ -92,7 +92,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         public List<PropertyInfo> GetUniqueProperties()
         {
             return MappingStorage.Instance.UniqueProperties
-                            .Where(m => m.SourceType.Name.Equals(EntityTypeName))
+                            .Where(m => m.SourceType.Name.Equals(_entityTypeName))
                             .SelectMany(m => m.Properties)
                             .Distinct()
                             .ToList();
@@ -104,11 +104,11 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// <returns>List of foreign keys.</returns>
         public List<RelationshipDetail> GetForeignKeyDetails()
         {
-            IEnumerable<RelationshipDetail> foreignKeys = ContextHelper
+            IEnumerable<RelationshipDetail> foreignKeys = _contextHelper
                 .GetForeignKeyDetails()
                 .Where(m =>
-                    m.FromDetails.ContainerClass.Equals(EntityTypeName)
-                    || m.ToDetails.ContainerClass.Equals(EntityTypeName));
+                    m.FromDetails.ContainerClass.Equals(_entityTypeName)
+                    || m.ToDetails.ContainerClass.Equals(_entityTypeName));
 
             return foreignKeys.ToList();
         }
@@ -117,17 +117,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// Get simple properties of entity.
         /// </summary>
         /// <returns>Simple properties of entity.</returns>
-        public List<EdmProperty> GetSimpleEntityProperties()
-        {
-            IEnumerable<EdmProperty> entityProperties = ContextHelper
-                .ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.CSpace)
-                .FirstOrDefault(m => m.Name.Equals(EntityTypeName))
-                .Properties;
-
-            return entityProperties.ToList();
-        }
+        public List<IProperty> GetSimpleEntityProperties() => _entityType.GetProperties().ToList();
 
         /// <summary>
         /// Get navigation details according to name of type
@@ -136,19 +126,19 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         public NavigationDetail GetNavigationDetail()
         {
             // Try to get from store
-            if (Store.NavigationDetail.ContainsKey(EntityTypeName))
-                return Store.NavigationDetail[EntityTypeName];
+            if (Store.NavigationDetail.ContainsKey(_entityTypeName))
+                return Store.NavigationDetail[_entityTypeName];
 
-            NavigationDetail navigationDetail = ContextHelper
+            NavigationDetail navigationDetail = _contextHelper
                 .ObjectContext
                 .MetadataWorkspace
                 .GetItems<EntityType>(DataSpace.CSpace)
-                .Where(m => m.Name.Equals(EntityTypeName))
+                .Where(m => m.Name.Equals(_entityTypeName))
                 .Select(n => new NavigationDetail(n))
                 .FirstOrDefault();
 
             // Add to store
-            Store.NavigationDetail.Add(EntityTypeName, navigationDetail);
+            Store.NavigationDetail.Add(_entityTypeName, navigationDetail);
             return navigationDetail;
         }
 
@@ -166,7 +156,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                 throw new ArgumentNullException(nameof(foreignKeyName));
 
             // Try to get from store
-            Tuple<string, string> key = new Tuple<string, string>(EntityTypeName, foreignKeyName);
+            Tuple<string, string> key = new Tuple<string, string>(_entityTypeName, foreignKeyName);
             if (Store.ForeignKeyOrigin.ContainsKey(key))
                 return Store.ForeignKeyOrigin[key];
 
@@ -182,7 +172,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
             // Get the relationship detail which this foreign keys refers.
             RelationshipDetail parentType = GetForeignKeyDetails()
-                .Where(r => r.ToDetails.ContainerClass.Equals(EntityTypeName)
+                .Where(r => r.ToDetails.ContainerClass.Equals(_entityTypeName)
                             && r.ToDetails.Keys.Any(k => k.Equals(foreignKeyName))
                             && r.FromDetails != null
                             && !string.IsNullOrEmpty(r.FromDetails.ContainerClass)
@@ -198,10 +188,10 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                 {
                     // If EntityTypeName and currentReferencedTypeName is same,
                     // then this is self reference, so we need to break infinete iteration.
-                    if (EntityTypeName == currentReferencedTypeName)
+                    if (_entityTypeName == currentReferencedTypeName)
                         break;
 
-                    IGraphEntityTypeManager referencedTypeManager = ContextFactory
+                    IGraphEntityTypeManager referencedTypeManager = _contextFactory
                         .GetEntityTypeManager(currentReferencedTypeName);
 
                     // Get one-to-one principal parent relationship detail,
@@ -252,8 +242,8 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
             // If principal count has already been
             // calculated for current type, get if from store.
-            if (store.ContainsKey(EntityTypeName))
-                return store[EntityTypeName];
+            if (store.ContainsKey(_entityTypeName))
+                return store[_entityTypeName];
 
             // Get principal properties.
             var navigationDetail = GetNavigationDetail();
@@ -263,7 +253,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
             // Get state definers
             IEnumerable<PropertyInfo> stateDefiners = MappingStorage.Instance.StateDefiners
-                .Where(s => s.SourceType.Name.Equals(EntityTypeName))
+                .Where(s => s.SourceType.Name.Equals(_entityTypeName))
                 .SelectMany(s => s.Properties);
 
             // Get types which this type is state definer for
@@ -272,7 +262,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                 .StateDefiners
                 .Where(m => m.Properties
                     .Select(pr => pr.PropertyType.Name)
-                    .Contains(EntityTypeName))
+                    .Contains(_entityTypeName))
                 .Select(m => m.SourceType.Name)
                 .ToList();
 
@@ -281,7 +271,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             if (principalCollection.Count() == 0
                 && stateDefiners.Count() == 0)
             {
-                store.Add(EntityTypeName, 0);
+                store.Add(_entityTypeName, 0);
                 return 0;
             }
 
@@ -298,7 +288,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             foreach (var principal in principalCollection)
             {
                 // If this principal property is itself, do not count it
-                if (principal.PropertyTypeName == EntityTypeName)
+                if (principal.PropertyTypeName == _entityTypeName)
                     continue;
 
                 // If this type is stete definer for principal
@@ -306,7 +296,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                 if (stateDefinerFor.Contains(principal.PropertyTypeName))
                     continue;
 
-                IGraphEntityTypeManager entityTypeManager = ContextFactory
+                IGraphEntityTypeManager entityTypeManager = _contextFactory
                     .GetEntityTypeManager(principal.PropertyTypeName);
                 count += entityTypeManager.FindPrincipalCount(store);
             }
@@ -314,13 +304,13 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             // Add count of principal properties of state definers also.
             foreach (var stateDefiner in stateDefiners)
             {
-                IGraphEntityTypeManager entityTypeManager = ContextFactory
+                IGraphEntityTypeManager entityTypeManager = _contextFactory
                     .GetEntityTypeManager(stateDefiner.PropertyType.Name);
                 count += entityTypeManager.FindPrincipalCount(store);
             }
 
             // Store calculation for further use.
-            store.Add(EntityTypeName, count);
+            store.Add(_entityTypeName, count);
             return count;
         }
 
@@ -347,6 +337,13 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             }
 
             return string.Empty;
+        }
+
+        private IEntityType GetEntityType()
+        {
+            var entityTypes = _contextHelper.Context.Model.GetEntityTypes();
+            var entityType = entityTypes.First(m => m.Name.Equals(_entityTypeName));
+            return entityType;
         }
     }
 }
