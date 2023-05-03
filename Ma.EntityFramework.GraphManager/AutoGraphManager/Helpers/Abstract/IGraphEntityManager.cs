@@ -1,7 +1,7 @@
 ﻿using Ma.EntityFramework.GraphManager.Models;
+using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.Core.Metadata.Edm;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -29,7 +29,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
         /// Get simple properties of entity.
         /// </summary>
         /// <returns>Simple properties of entity.</returns>
-        List<EdmProperty> GetSimpleEntityProperties();
+        List<IProperty> GetSimpleEntityProperties();
 
         /// <summary>
         /// If any of key members of entity is store generated.

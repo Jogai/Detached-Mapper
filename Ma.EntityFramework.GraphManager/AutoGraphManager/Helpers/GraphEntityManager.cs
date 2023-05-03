@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using Ma.ExtensionMethods.Reflection;
 using System.Data.Entity.Infrastructure;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {
@@ -64,7 +65,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// Get simple properties of entity.
         /// </summary>
         /// <returns>Simple properties of entity.</returns>
-        public List<EdmProperty> GetSimpleEntityProperties()
+        public List<IProperty> GetSimpleEntityProperties()
         {
             return EntityTypeManager.GetSimpleEntityProperties();
         }

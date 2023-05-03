@@ -1,111 +1,74 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
-namespace Ma.EntityFramework.GraphManager.Models
+namespace Ma.EntityFramework.GraphManager.Models;
+
+public class NavigationDetail
 {
-    public class NavigationDetail
-    {        
-        public NavigationDetail()
-        {
-            Relations = new List<NavigationRelation>();
-        }
+    public string SourceTypeName { get; set; }
+    public List<NavigationRelation> Relations { get; set; }
 
-        /// <summary>
-        /// Construct NavigationDetail according to EntityType.
-        /// </summary>
-        /// <param name="entityType">EntityType to get navigation details.</param>
-        public NavigationDetail(IEntityType entityType)            
-        {
-            if (entityType == null)
-                return;
-
-            Relations = new List<NavigationRelation>();
-            Initialize(entityType);            
-        }
-
-        public string SourceTypeName { get; set; }
-        public List<NavigationRelation> Relations { get; set; }
-
-        /// <summary>
-        /// Initialize navigation details according entity type.
-        /// </summary>
-        /// <param name="entityType">EntityType to get navigation details.</param>
-        private void Initialize(IEntityType entityType)
-        {
-            if (entityType == null)
-                return;
-
-            SourceTypeName = entityType.Name;
-
-            var entityNavigations = entityType.GetNavigations().ToList();
-
-            if (!entityNavigations.Any())
-                return;
-
-            foreach (var navigation in entityNavigations)
-            {
-                var relation = new NavigationRelation { PropertyName = navigation.Name };
-
-                if (navigation.FromEndMember != null)
-                    relation.SourceMultiplicity =
-                        navigation.FromEndMember.RelationshipMultiplicity;
-
-                if (navigation.ToEndMember != null)
-                {
-                    relation.TargetMultiplicity =
-                        navigation.ToEndMember.RelationshipMultiplicity;
-
-                    AssociationType associationType = navigation.ToEndMember.DeclaringType as AssociationType;
-
-                    if (associationType != null
-                        && associationType.Constraint != null)
-                    {
-
-                        relation.FromKeyNames = associationType
-                            .Constraint
-                            .FromProperties
-                            .Select(m => m.Name)
-                            .ToList();
-
-                        relation.ToKeyNames = associationType
-                            .Constraint
-                            .ToProperties
-                            .Select(m => m.Name)
-                            .ToList();
-
-                        if (navigation.ToEndMember.Name == associationType.Constraint.ToRole.Name)
-                            relation.Direction = NavigationDirection.To;
-                        else if (navigation.ToEndMember.Name == associationType.Constraint.FromRole.Name)
-                            relation.Direction = NavigationDirection.From;
-                    }
-
-                    RefType toRefType = navigation.ToEndMember.TypeUsage.EdmType as RefType;
-
-                    if (toRefType != null)
-                        relation.PropertyTypeName =
-                            toRefType.ElementType.Name;
-                }
-
-                Relations.Add(relation);
-            }
-        }
+    public NavigationDetail(IEntityType entityType)
+    {
+        SourceTypeName = entityType.Name;
+        Relations = ExtractNavigationRelations(entityType);
     }
 
-    public class NavigationRelation
+    private static List<NavigationRelation> ExtractNavigationRelations(IEntityType entityType)
     {
-        public string PropertyName { get; set; }        
-        public string PropertyTypeName { get; set; }
-        public List<string> FromKeyNames { get; set; }
-        public List<string> ToKeyNames { get; set; }
-        public RelationshipMultiplicity SourceMultiplicity { get; set; }
-        public RelationshipMultiplicity TargetMultiplicity { get; set; }
-        public NavigationDirection Direction { get; set; }
+        var relations = new List<NavigationRelation>();
+
+        var entityNavigations = entityType.GetNavigations();
+        foreach (var navigation in entityNavigations)
+        {
+            relations.Add(ExtractNavigationDetails(navigation));
+        }
+
+        return relations;
     }
 
-    public enum NavigationDirection
+    private static NavigationRelation ExtractNavigationDetails(INavigation navigation)
     {
-        NotSpecified = 0, From, To
+        var navigationRelation = new NavigationRelation();
+
+        var isOnDependent = navigation.IsOnDependent;
+        var isCollection = navigation.IsCollection;
+        var inverse = navigation.Inverse;
+        var foreignKey = navigation.ForeignKey;
+
+        var principialProperties = foreignKey.PrincipalKey.Properties.Select(property => property.Name).ToList();
+        var properties = foreignKey.Properties.Select(property => property.Name).ToList();
+
+        navigationRelation.PropertyName = navigation.Name;
+        navigationRelation.PropertyTypeName = navigation.TargetEntityType.Name;
+        navigationRelation.Direction = isOnDependent ? NavigationDirection.From : NavigationDirection.To;
+        navigationRelation.FromKeyNames = principialProperties;
+        navigationRelation.ToKeyNames = properties;
+
+        var inverseNavigation = navigation.Inverse;
+        navigationRelation.TargetMultiplicity = CalculateRelationshipMultiplicity(navigation);
+
+        var sourceMultiplicity = RelationshipMultiplicity.One;
+
+        if (inverseNavigation != null)
+        {
+            sourceMultiplicity = CalculateRelationshipMultiplicity(inverseNavigation);
+        }
+
+        navigationRelation.SourceMultiplicity = sourceMultiplicity;
+
+        return navigationRelation;
+    }
+
+    private static RelationshipMultiplicity CalculateRelationshipMultiplicity(INavigation navigation)
+    {
+        if (navigation.IsCollection) return RelationshipMultiplicity.Many;
+
+        var foreignKey = navigation.ForeignKey;
+        if (foreignKey.IsRequired || navigation.IsOnDependent)
+            return RelationshipMultiplicity.One;
+        else
+            return RelationshipMultiplicity.ZeroOrOne;
     }
 }
