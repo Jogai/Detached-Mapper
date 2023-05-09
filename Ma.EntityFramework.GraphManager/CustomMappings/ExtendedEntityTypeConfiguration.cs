@@ -2,12 +2,11 @@
 using Ma.EntityFramework.GraphManager.CustomMappings.MappingHelpers;
 using Ma.EntityFramework.GraphManager.DataStorage;
 using System;
-using System.Collections.Generic;
-using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Ma.ExtensionMethods.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.CustomMappings
 {
@@ -17,9 +16,14 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
     /// </summary>
     /// <typeparam name="TEntity">Type of entity to map.</typeparam>
     public class ExtendedEntityTypeConfiguration<TEntity>
-        : EntityTypeConfiguration<TEntity>, IExtendedEntityTypeConfiguration<TEntity>
+        : EntityTypeBuilder<TEntity>, IExtendedEntityTypeConfiguration<TEntity>
         where TEntity : class
     {
+        public ExtendedEntityTypeConfiguration(IMutableEntityType entityType)
+            : base(entityType)
+        {
+        }
+
         /// <summary>
         /// Mark properties as unique.
         /// </summary>

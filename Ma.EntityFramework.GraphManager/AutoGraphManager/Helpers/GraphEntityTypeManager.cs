@@ -5,9 +5,7 @@ using Ma.EntityFramework.GraphManager.Models;
 using System.Reflection;
 using Ma.EntityFramework.GraphManager.DataStorage;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {
@@ -34,11 +32,6 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             _entityType = GetEntityType();
         }
 
-        private DbContext Context
-        {
-            get { return _contextHelper.Context; }
-        }
-
         private HelperStore Store
         {
             get { return _contextHelper.Store; }
@@ -50,13 +43,10 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// <returns>List of primary keys.</returns>
         public List<string> GetPrimaryKeys()
         {
-            IEnumerable<string> primaryKeys = _contextHelper
-                .ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.CSpace)
-                .FirstOrDefault(m => m.Name.Equals(_entityTypeName))
-                .KeyMembers
-                .Select(m => m.Name);
+            var primaryKeys = GetEntityType()
+                .FindPrimaryKey()
+                .Properties
+                .Select(keyProperty => keyProperty.Name);
 
             return primaryKeys.ToList();
         }
@@ -69,18 +59,13 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         {
             bool hasStoreGeneratedKey = false;
 
-            EntityType entityType = _contextHelper
-                .ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.SSpace)
-                .Where(m => m.Name.Equals(_entityTypeName))
-                .FirstOrDefault();
+            var primaryKey = GetEntityType().FindPrimaryKey();
+            if (primaryKey == null) return hasStoreGeneratedKey;
 
-            if (entityType != null)
-                hasStoreGeneratedKey = entityType
-                    .KeyMembers
-                    .Any(m => m.IsStoreGeneratedIdentity
-                            || m.IsStoreGeneratedComputed);
+            var doesNotHaveStoreKeneratedKey = primaryKey
+                .Properties
+                .All(key => key.ValueGenerated == ValueGenerated.Never);
+            hasStoreGeneratedKey = !doesNotHaveStoreKeneratedKey;
 
             return hasStoreGeneratedKey;
         }
@@ -129,13 +114,9 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             if (Store.NavigationDetail.ContainsKey(_entityTypeName))
                 return Store.NavigationDetail[_entityTypeName];
 
-            NavigationDetail navigationDetail = _contextHelper
-                .ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.CSpace)
-                .Where(m => m.Name.Equals(_entityTypeName))
-                .Select(n => new NavigationDetail(n))
-                .FirstOrDefault();
+            var navigationDetail = _contextHelper
+                .GetNavigationDetails()
+                .FirstOrDefault(navigation => navigation.SourceTypeName == _entityTypeName);
 
             // Add to store
             Store.NavigationDetail.Add(_entityTypeName, navigationDetail);
@@ -341,7 +322,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
         private IEntityType GetEntityType()
         {
-            var entityTypes = _contextHelper.Context.Model.GetEntityTypes();
+            var entityTypes = _contextHelper.GetEntityTypes();
             var entityType = entityTypes.First(m => m.Name.Equals(_entityTypeName));
             return entityType;
         }

@@ -9,6 +9,8 @@ public class NavigationDetail
     public string SourceTypeName { get; set; }
     public List<NavigationRelation> Relations { get; set; }
 
+    public NavigationDetail() { }
+
     public NavigationDetail(IEntityType entityType)
     {
         SourceTypeName = entityType.Name;

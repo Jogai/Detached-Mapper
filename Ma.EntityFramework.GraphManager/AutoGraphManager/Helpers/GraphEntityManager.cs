@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
-using System.Data.Entity.Core.Metadata.Edm;
 using Ma.EntityFramework.GraphManager.Models;
 using System.Reflection;
 using Ma.EntityFramework.GraphManager.DataStorage;
 using System.Linq.Expressions;
 using Ma.ExtensionMethods.Reflection;
-using System.Data.Entity.Infrastructure;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {
@@ -420,7 +418,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             */
             IEnumerable<string> primaryKeyNames = GetPrimaryKeys();
 
-            DbEntityEntry current = Context.Entry(entity);
+            var current = Context.Entry(entity);
             foreach (string primaryKey in primaryKeyNames)
             {
                 current.Property(primaryKey).CurrentValue =
@@ -489,7 +487,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                 .Select(m => m.Name)
                 .ToList();
 
-            DbEntityEntry<TEntity> entry = Context.Entry(entity);
+            var entry = Context.Entry(entity);
             foreach (string propertyName in propertiesToCompare)
             {
                 var currentValue = entity.GetPropertyValue(propertyName);

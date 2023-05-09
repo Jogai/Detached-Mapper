@@ -2,6 +2,7 @@
 using Ma.EntityFramework.GraphManager.Models;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
 {
@@ -9,6 +10,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract
     {
         DbContext Context { get; }
         HelperStore Store { get; }
+        IEnumerable<IEntityType> GetEntityTypes();
         IEnumerable<NavigationDetail> GetNavigationDetails();
         List<RelationshipDetail> GetForeignKeyDetails();
 

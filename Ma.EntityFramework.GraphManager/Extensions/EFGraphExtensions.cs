@@ -1,13 +1,10 @@
-﻿using Ma.EntityFramework.GraphManager.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Abstract;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager
 {

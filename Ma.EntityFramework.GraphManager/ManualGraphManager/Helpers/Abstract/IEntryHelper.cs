@@ -1,5 +1,5 @@
-﻿using System;
-using System.Data.Entity;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq.Expressions;
 
 namespace Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers.Abstract

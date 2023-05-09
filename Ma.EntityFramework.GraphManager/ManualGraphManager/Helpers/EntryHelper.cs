@@ -1,23 +1,23 @@
 ﻿using System;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
 using System.Linq.Expressions;
 using System.Reflection;
 using Ma.ExtensionMethods.Reflection;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers
 {
     internal class EntryHelper<T> : IEntryHelper<T>        
         where T : class
     {
-        private DbEntityEntry Entry { get; set; }
+        private EntityEntry Entry { get; set; }
 
         /// <summary>
         /// Entry helper to manually manage Entry.
         /// </summary>
         /// <param name="entryParam"></param>
-        internal EntryHelper(DbEntityEntry entryParam)
+        internal EntryHelper(EntityEntry entryParam)
         {
             if (entryParam == null)
                 throw new ArgumentNullException("entryParam");
@@ -60,15 +60,14 @@ namespace Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers
                     "Expression '{0}' does not select any property.",
                     propertyLambda.ToString()));
 
-            DbPropertyEntry propertyEntry = Entry.Property(property.Name);
+            var propertyEntry = Entry.Property(property.Name);
 
             if(propertyEntry == null)
                 throw new ArgumentException(string.Format(
                     "Entry does not have property with '{0}' name.",
                     property.Name));
 
-            EntryPropertyHelper<TProperty> helper =
-                new EntryPropertyHelper<TProperty>(propertyEntry);
+            var helper = new EntryPropertyHelper<TProperty>(propertyEntry);
             return helper;
         }
     }

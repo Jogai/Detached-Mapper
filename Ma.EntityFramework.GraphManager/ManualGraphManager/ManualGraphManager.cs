@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers;
-using System.Data.Entity.Infrastructure;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Abstract;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers.Abstract;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ma.EntityFramework.GraphManager.ManualGraphManager
 {
@@ -56,7 +55,7 @@ namespace Ma.EntityFramework.GraphManager.ManualGraphManager
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
 
-            DbEntityEntry entry = Context.Entry(entity);
+            var entry = Context.Entry(entity);
 
             if (entry == null)
                 throw new ArgumentException(string.Format(

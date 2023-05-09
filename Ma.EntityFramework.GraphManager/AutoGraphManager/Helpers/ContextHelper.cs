@@ -1,20 +1,16 @@
 ﻿using Ma.EntityFramework.GraphManager.Models;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Core.Metadata.Edm;
 using System.Linq;
 using Ma.ExtensionMethods.Reflection;
 using System.Reflection;
 using System.Linq.Expressions;
-using System.Data.Entity.Core.Objects;
-using System.Data.Entity.Infrastructure;
-using Ma.EntityFramework.GraphManager.DataStorage;
 using Ma.EntityFramework.GraphManager.ManualGraphManager.Abstract;
 using Ma.EntityFramework.GraphManager.ManualGraphManager;
 using Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers.Abstract;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 {
@@ -37,13 +33,9 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             Store = new HelperStore();
         }
 
-        /// <summary>
-        /// Get object context associated with context.
-        /// </summary>
-        /// <returns>Object context for context.</returns>
-        public ObjectContext ObjectContext
+        public IEnumerable<IEntityType> GetEntityTypes()
         {
-            get { return ((IObjectContextAdapter)Context).ObjectContext; }
+            return Context.Model.GetEntityTypes();
         }
 
         /// <summary>
@@ -52,10 +44,8 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// <returns>Navigation details of context.</returns>
         public IEnumerable<NavigationDetail> GetNavigationDetails()
         {
-            IEnumerable<NavigationDetail> navigationDetails = ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.CSpace)
-                .Select(n => new NavigationDetail(n));
+            IEnumerable<NavigationDetail> navigationDetails = GetEntityTypes()
+                .Select(entityType => new NavigationDetail(entityType));
 
             return navigationDetails;
         }
@@ -66,13 +56,36 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
         /// <returns>Foreign key details.</returns>
         public List<RelationshipDetail> GetForeignKeyDetails()
         {
-            if (ForeignKeyDetails == null)
-                ForeignKeyDetails = ObjectContext
-                    .MetadataWorkspace
-                    .GetItems<AssociationType>(DataSpace.CSpace)
-                    .Where(m => m.Constraint != null)
-                    .Select(m => new RelationshipDetail(m.Constraint))
-                    .ToList();
+            if (ForeignKeyDetails != null)
+                return ForeignKeyDetails;
+
+            var navigationDetails = GetNavigationDetails();
+            var toRelations = navigationDetails
+            .Select(detail => new
+            {
+                detail.SourceTypeName,
+                Relations = detail.Relations.Where(relation => relation.Direction == NavigationDirection.To)
+            })
+            .Where(detail => detail.Relations.Any())
+            .ToList();
+
+            ForeignKeyDetails = toRelations
+                .SelectMany(detail => detail.Relations.Select(relation => new RelationshipDetail
+                {
+                    FromDetails = new ForeignKeyDetail
+                    {
+                        ContainerClass = detail.SourceTypeName,
+                        Keys = relation.FromKeyNames,
+                        RelationshipMultiplicity = relation.SourceMultiplicity
+                    },
+                    ToDetails = new ForeignKeyDetail
+                    {
+                        ContainerClass = relation.PropertyTypeName,
+                        Keys = relation.ToKeyNames,
+                        RelationshipMultiplicity = relation.TargetMultiplicity
+                    }
+                }))
+                .ToList();
 
             return ForeignKeyDetails;
         }
@@ -363,10 +376,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
                         .FirstOrDefault(t => t.Name.Equals(parentNavigation.SourceTypeName));
 
                     // Get local set of parent
-                    IEnumerable<object> localParentSet = Context
-                        .Set(parentType)
-                        .Local
-                        .CastToGeneric();
+                    IEnumerable<object> localParentSet = GetLocalFromSet(Context, entityType: parentType);
 
                     foreach (NavigationRelation navigationRelation in parentNavigation.Relations)
                     {
@@ -582,9 +592,7 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
             // Initialize store
             Dictionary<string, int> store = new Dictionary<string, int>();
 
-            List<string> typeNames = ObjectContext
-                .MetadataWorkspace
-                .GetItems<EntityType>(DataSpace.CSpace)
+            List<string> typeNames = GetEntityTypes()
                 .Select(m => m.Name)
                 .ToList();
 
@@ -702,10 +710,8 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
                 // Get list of entities to define state.
                 List<object> definedEntityStore = new List<object>();
-                IEnumerable<object> entitySet = Context
-                         .Set(entityType)
-                         .Local
-                         .CastToGeneric();
+
+                IEnumerable<object> entitySet = GetLocalFromSet(Context, entityType);
 
                 // Order entities to define state of them accordingly.
                 entitySet = DefineStateDefineOrder(entitySet);
@@ -973,6 +979,20 @@ namespace Ma.EntityFramework.GraphManager.AutoGraphManager.Helpers
 
             store.Add(entity, principalSelfCount);
             return principalSelfCount;
+        }
+
+        private static IEnumerable<object> GetLocalFromSet(DbContext context, Type entityType)
+        {
+            // Get the generic type definition
+            var setMethod = typeof(DbContext)
+                .GetMethods()
+                .First(method => method.Name == nameof(DbContext.Set) && method.IsGenericMethod);
+
+            // Build a method with the specific type argument you're interested in
+            setMethod = setMethod.MakeGenericMethod(entityType);
+
+            dynamic set = setMethod.Invoke(context, null);
+            return set.Local as IEnumerable<object>;
         }
 
         #region IContextFactory members

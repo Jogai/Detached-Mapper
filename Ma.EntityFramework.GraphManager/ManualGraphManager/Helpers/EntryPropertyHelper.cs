@@ -1,13 +1,13 @@
 ﻿using Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers.Abstract;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
-using System.Data.Entity.Infrastructure;
 
 namespace Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers
 {
     internal class EntryPropertyHelper<TProperty>
         : IEntryPropertyHelper<TProperty>
     {
-        private DbPropertyEntry EntryProperty { get; set; }
+        private PropertyEntry EntryProperty { get; set; }
 
         /// <summary>
         /// EntryProperty helper to work on property of entry.
@@ -16,7 +16,7 @@ namespace Ma.EntityFramework.GraphManager.ManualGraphManager.Helpers
         /// When entryPropertyParam is null.
         /// </exception>
         /// <param name="entryPropertyParam">Entry proeprty to work on.</param>
-        public EntryPropertyHelper(DbPropertyEntry entryPropertyParam)
+        public EntryPropertyHelper(PropertyEntry entryPropertyParam)
         {
             if (entryPropertyParam == null)
                 throw new ArgumentNullException("entryPropertyParam");
