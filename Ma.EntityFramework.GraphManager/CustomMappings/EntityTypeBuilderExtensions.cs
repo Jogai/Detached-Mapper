@@ -6,24 +6,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using Ma.ExtensionMethods.Reflection;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Ma.EntityFramework.GraphManager.CustomMappings
 {
-    /// <summary>
-    /// ExtendedEntityTypeConfiguration extends EntityTypeConfiguration
-    /// and adds additional methods to enhance working with entities.
-    /// </summary>
-    /// <typeparam name="TEntity">Type of entity to map.</typeparam>
-    public class ExtendedEntityTypeConfiguration<TEntity>
-        : EntityTypeBuilder<TEntity>, IExtendedEntityTypeConfiguration<TEntity>
-        where TEntity : class
+    public static class EntityTypeBuilderExtensions
     {
-        public ExtendedEntityTypeConfiguration(IMutableEntityType entityType)
-            : base(entityType)
-        {
-        }
-
         /// <summary>
         /// Mark properties as unique.
         /// </summary>
@@ -31,18 +18,22 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
         /// When lambda expression is null.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// When lambda expression deos not select any property.
+        /// When lambda expression does not select any property.
         /// When lambda expression selects not appropriate properties.
         /// When lambda expression selects already selected combination
         /// of properties to set as unique.
         /// </exception>
-        /// <typeparam name="TProperty">Type of property.</typeparam>
+        /// <typeparam name="TEntity">Type of the entity.</typeparam>
+        /// <typeparam name="TProperty">Type of the property.</typeparam>
+        /// <param name="entityTypeBuilder">Instance of EntityTypeBuilder</param>
         /// <param name="propertyLambda">Lambda expression to mark properties as unique.</param>
-        public void HasUnique<TProperty>(
+        public static void HasUnique<TEntity, TProperty>(
+            this EntityTypeBuilder<TEntity> entityTypeBuilder,
             Expression<Func<TEntity, TProperty>> propertyLambda)
+            where TEntity : class
         {
-            if (propertyLambda == null)
-                throw new ArgumentNullException("propertyLambda");
+            ArgumentNullException.ThrowIfNull(entityTypeBuilder);
+            ArgumentNullException.ThrowIfNull(propertyLambda);
 
             var markedProperties = propertyLambda.GetPropertyInfoList();
 
@@ -65,7 +56,7 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
                 && violatedProperties.Count() > 0)
                 throw new ArgumentException(string.Format(
                     "Expression '{0}' for '{1}' selects inappropriate properties to set unique.\n" +
-                    "Only built in value types or enums can be set as unique.",
+                    "Only built in value types or enumerations can be set as unique.",
                     propertyLambda.ToString(),
                     typeof(TEntity).Name));
 
@@ -96,7 +87,7 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
         /// Mark properties state of which has to be defined before entity itself
         /// in order to be able to correctly define state of entity itself. These properties
         /// are those uniqueness of which can be determined easily according to their 
-        /// property values. Properties from which state of entity is dependant from 
+        /// property values. Properties from which state of entity is dependent from 
         /// and which are in one-to-one relationship with this entity should be marked. 
         /// Parents of entity or entities which are in many-to-one relationship with this entity
         /// should not be marked, they are automatically ordered.
@@ -109,14 +100,18 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
         /// When lambda expression selects inappropriate properties to define state of.
         /// When lambda expression selects already selected property to define state of.
         /// </exception>
-        /// <typeparam name="TProperty">Type of property.</typeparam>
+        /// <typeparam name="TEntity">Type of the entity.</typeparam>
+        /// <typeparam name="TProperty">Type of the property.</typeparam>
+        /// <param name="entityTypeBuilder">Instance of EntityTypeBuilder</param>
         /// <param name="propertyLambda">Lambda expression to get properties 
         /// state of which must be defined.</param>        
-        public void HasStateDefiner<TProperty>(
+        public static void HasStateDefiner<TEntity, TProperty>(
+            this EntityTypeBuilder<TEntity> entityTypeBuilder,
             Expression<Func<TEntity, TProperty>> propertyLambda)
+            where TEntity : class
         {
-            if (propertyLambda == null)
-                throw new ArgumentNullException("propertyLambda");
+            ArgumentNullException.ThrowIfNull(entityTypeBuilder);
+            ArgumentNullException.ThrowIfNull(propertyLambda);
 
             var markedProperties = propertyLambda.GetPropertyInfoList();
 
@@ -184,16 +179,20 @@ namespace Ma.EntityFramework.GraphManager.CustomMappings
         /// When propertyLambda is null.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// When propertyLambda does not select a proeprty
+        /// When propertyLambda does not select a property
         /// </exception>
-        /// <typeparam name="TProperty">Type of property.</typeparam>
+        /// <typeparam name="TEntity">Type of the entity.</typeparam>
+        /// <typeparam name="TProperty">Type of the property.</typeparam>
+        /// <param name="entityTypeBuilder">Instance of EntityTypeBuilder</param>
         /// <param name="propertyLambda">Lambda expression to get property.</param>
         /// <returns>Extended property helper to be able to work on property.</returns>
-        public ExtendedPropertyHelper<TEntity> ExtendedProperty<TProperty>(
+        public static ExtendedPropertyHelper<TEntity> ExtendedProperty<TEntity, TProperty>(
+            this EntityTypeBuilder<TEntity> entityTypeBuilder,
             Expression<Func<TEntity, TProperty>> propertyLambda)
+            where TEntity : class
         {
-            if (propertyLambda == null)
-                throw new ArgumentNullException("propertyLambda");
+            ArgumentNullException.ThrowIfNull(entityTypeBuilder);
+            ArgumentNullException.ThrowIfNull(propertyLambda);
 
             var property = propertyLambda.GetPropertyInfo();
 
