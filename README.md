@@ -1,3 +1,7 @@
+# Important Note
+
+This repo has been created by migrating from [EntityFramework.GraphManager](https://github.com/MammadovAdil/EntityFramework.GraphManager) repo. Readme file is **outdated** and needs to be updated.
+
 # Introduction
 
 **Automatically** handle and define state of *complex hierarchical* graph of entities for *EntityFramework Code-First*.

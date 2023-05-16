@@ -13,12 +13,12 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Adil Mammadov</Authors>
-    <Description>Automatically define state of and handle graph of EntityFramework models with ease.</Description>
+    <Description>Automatically define state of and handle graph of EntityFrameworkCore models with ease.</Description>
     <Copyright>Copyright 2023</Copyright>
-    <PackageProjectUrl>https://github.com/MammadovAdil/EntityFramework.GraphManager</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/MammadovAdil/EntityFramework.GraphManager</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/MammadovAdil/EntityFrameworkCore.GraphManager</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MammadovAdil/EntityFrameworkCore.GraphManager</RepositoryUrl>
     <PackageReleaseNotes>Migrate to .Net 7</PackageReleaseNotes>
-    <Title>EntityFramework.GraphManager by Adil Mammadov</Title>
+    <Title>EntityFrameworkCore.GraphManager by Adil Mammadov</Title>
     <PackageTags>entity-framework-core;graph;code-first;graph-manager</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
