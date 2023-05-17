@@ -36,16 +36,16 @@ public class Post
 
 Install from nuget:
 
-`Install-Package Ma.EntityFrameworkCore.GraphManager`
+`Install-Package EntityFrameworkCore.GraphManager`
 
 ## Usage:
 
 1. Your mapping classes should intherit `ExtendedEntityTypeConfiguration<TEntity>`, where `TEntity` is type of entity 
 which you are configuring mappings for. To be able to do so, you have to add 
-**Ma.EntityFrameworkCore.GraphManager.CustomMappings** namespace to unsings section. 
+**EntityFrameworkCore.GraphManager.CustomMappings** namespace to unsings section. 
 Remember that, *you do not have to inherit this configuration class* if you do not need any custom mappings (i.e. unique keys, not updated properties and etc.). 
 Automatic state defining should still work without this.
-2. Add **Ma.EntityFrameworkCore.GraphManager** to your usings section where to you want to add or update entities.
+2. Add **EntityFrameworkCore.GraphManager** to your usings section where to you want to add or update entities.
 3. Define state of whole graph using just one line: `context.AddOrUpdate(entity);`
 
 ### Further reading:
