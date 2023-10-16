@@ -187,7 +187,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
 
-            string typeName = entity.GetType().Name;
+            string typeName = entity.GetType().FullName;
             List<RelationshipMultiplicity> principalRelationshipMultiplicity =
                 new List<RelationshipMultiplicity>()
                 {
@@ -811,7 +811,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
 
                 // Group list of entities by type
                 var groupedEntityList = allEntities
-                    .GroupBy(m => m.GetType().Name)
+                    .GroupBy(m => m.GetType().FullName)
                     .Select(g => new
                     {
                         TypeName = g.Key,
@@ -887,11 +887,11 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                 return entityCollection;
 
             // Get type of entity
-            string entityTypeName = entityCollection.First().GetType().Name;
+            string entityTypeName = entityCollection.First().GetType().FullName;
 
             // All entities must have same type in collection.
             if (entityCollection
-                .Any(m => m != null && m.GetType().Name != entityTypeName))
+                .Any(m => m != null && m.GetType().FullName != entityTypeName))
                 throw new InvalidOperationException(string.Format(
                     "All entities must have same type in collection to define state define order."
                         + " Entity type: {0}.",
