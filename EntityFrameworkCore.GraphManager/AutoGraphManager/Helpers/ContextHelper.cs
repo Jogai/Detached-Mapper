@@ -206,14 +206,15 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                 .Where(r => r.Direction == NavigationDirection.From)
                 .Select(r =>
                 {
-                    IGraphEntityTypeManager typeManager =
+                    IGraphEntityTypeManager parentTypeManager =
                         GetEntityTypeManager(r.PropertyTypeName);
+                    var parentNavigationRelations = parentTypeManager
+                             .GetNavigationDetail()
+                             .Relations;
                     return new
                     {
                         SourceTypeName = r.PropertyTypeName,
-                        Relation = typeManager
-                             .GetNavigationDetail()
-                             .Relations
+                        Relation = parentNavigationRelations
                              .FirstOrDefault(pr =>
                                  pr.PropertyTypeName.Equals(typeName)
                                  && pr.SourceMultiplicity == r.TargetMultiplicity
@@ -345,14 +346,15 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
             // Properties which have navigation property type of which
             // is type of entity. Ignore navigation properties
             // which are mutual navigation properties with entity itself.     
-            string typeName = currentValue.GetType().Name;
-            List<NavigationDetail> parentNavigationDetails = GetNavigationDetails()
+            string typeName = currentValue.GetType().FullName;
+            var navigationDetails = GetNavigationDetails();
+            List<NavigationDetail> parentNavigationDetails = navigationDetails
                 .Select(n => new NavigationDetail()
                 {
                     SourceTypeName = n.SourceTypeName,
                     Relations = n.Relations
                         .Where(r => r.PropertyTypeName.Equals(typeName)
-                                   && r.SourceMultiplicity == RelationshipMultiplicity.Many
+                                   && (r.Direction == NavigationDirection.From || r.SourceMultiplicity == RelationshipMultiplicity.Many)
                                    && !navigationDetailOfCurrent
                                         .Relations
                                         .Any(c => c.PropertyTypeName.Equals(n.SourceTypeName)
@@ -373,7 +375,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                 foreach (NavigationDetail parentNavigation in parentNavigationDetails)
                 {
                     Type parentType = entityAssembly.GetTypes()
-                        .FirstOrDefault(t => t.Name.Equals(parentNavigation.SourceTypeName));
+                        .FirstOrDefault(t => t.FullName.Equals(parentNavigation.SourceTypeName));
 
                     // Get local set of parent
                     IEnumerable<object> localParentSet = GetLocalFromSet(Context, entityType: parentType);
@@ -455,7 +457,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
 
-            string typeName = entity.GetType().Name;
+            string typeName = entity.GetType().FullName;
             IGraphEntityTypeManager graphEntityTypeManager =
                 GetEntityTypeManager(typeName);
             List<string> dependantPropertyTypes = graphEntityTypeManager
@@ -647,8 +649,6 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                     Context.Entry(entity).State = EntityState.Detached;
                     Context.Entry(entity).State = EntityState.Added;
                 }
-
-                entityManager.SynchronizeKeys(entity, matchingEntity);
             }
 
             // Deal with duplicates before proceeding
@@ -656,6 +656,8 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
 
             if (matchingEntity != null)
             {
+                entityManager.SynchronizeKeys(entity, matchingEntity);
+
                 Context.Entry(entity).State = EntityState.Unchanged;
                 entityManager.DetectPropertyChanges(entity, matchingEntity);
             }
@@ -950,7 +952,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
             if (store.ContainsKey(entity))
                 return store[entity];
 
-            string typeName = entity.GetType().Name;
+            string typeName = entity.GetType().FullName;
 
             // Get navigation details and find properties which is refers to itslef.
             IGraphEntityManager<TEntity> entityManager = GetEntityManager<TEntity>();
