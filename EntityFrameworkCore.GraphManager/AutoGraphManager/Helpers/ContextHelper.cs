@@ -354,7 +354,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                     SourceTypeName = n.SourceTypeName,
                     Relations = n.Relations
                         .Where(r => r.PropertyTypeName.Equals(typeName)
-                                   && (r.Direction == NavigationDirection.From || r.SourceMultiplicity == RelationshipMultiplicity.Many)
+                                   && r.SourceMultiplicity == RelationshipMultiplicity.Many
                                    && !navigationDetailOfCurrent
                                         .Relations
                                         .Any(c => c.PropertyTypeName.Equals(n.SourceTypeName)
@@ -472,7 +472,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                 .GetType()
                 .GetProperties()
                 .Where(p => dependantPropertyTypes
-                                .Contains(p.PropertyType.GetUnderlyingType().Name))
+                                .Contains(p.PropertyType.GetUnderlyingType().FullName))
                 .ToList();
 
             if (dependantProperties != null
@@ -649,15 +649,15 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                     Context.Entry(entity).State = EntityState.Detached;
                     Context.Entry(entity).State = EntityState.Added;
                 }
+
+                entityManager.SynchronizeKeys(entity, matchingEntity);
             }
 
             // Deal with duplicates before proceeding
             DealWithDuplicates(entity);
 
             if (matchingEntity != null)
-            {
-                entityManager.SynchronizeKeys(entity, matchingEntity);
-
+            {              
                 Context.Entry(entity).State = EntityState.Unchanged;
                 entityManager.DetectPropertyChanges(entity, matchingEntity);
             }

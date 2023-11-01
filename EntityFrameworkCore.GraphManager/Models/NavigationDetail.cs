@@ -51,14 +51,15 @@ public class NavigationDetail
         var inverseNavigation = navigation.Inverse;
         navigationRelation.TargetMultiplicity = CalculateRelationshipMultiplicity(navigation);
 
-        var sourceMultiplicity = RelationshipMultiplicity.One;
-
         if (inverseNavigation != null)
         {
-            sourceMultiplicity = CalculateRelationshipMultiplicity(inverseNavigation);
+            navigationRelation.SourceMultiplicity = CalculateRelationshipMultiplicity(inverseNavigation);
         }
-
-        navigationRelation.SourceMultiplicity = sourceMultiplicity;
+        else
+        {
+            var isForeignKeyPropertiesAlsoPrimaryKey = foreignKey.Properties.All(foreignKeyProperty => foreignKeyProperty.IsPrimaryKey());
+            navigationRelation.SourceMultiplicity = isForeignKeyPropertiesAlsoPrimaryKey ? RelationshipMultiplicity.ZeroOrOne : RelationshipMultiplicity.Many;
+        }
 
         return navigationRelation;
     }

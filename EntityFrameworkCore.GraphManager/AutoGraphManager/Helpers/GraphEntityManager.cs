@@ -361,76 +361,69 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
             TEntity entity,
             TEntity matchingEntity)
         {
-            try
+            /*
+             * 
+             * 
+             * Set keys of parent entity to value of child entity at one to one relations.
+             * 
+             * 
+             */
+            var foreignKeyDetails = GetForeignKeyDetails();
+            IEnumerable<RelationshipDetail> associatedRealtionships = foreignKeyDetails
+                .Where(m => m.ToDetails.ContainerClass.Equals(entity.GetType().FullName)
+                    && m.ToDetails.RelationshipMultiplicity == RelationshipMultiplicity.One);
+
+            foreach (RelationshipDetail relationshipDetail in associatedRealtionships)
             {
-                /*
-                 * 
-                 * 
-                 * Set keys of parent entity to value of child entity at one to one relations.
-                 * 
-                 * 
-                 */
-                var foreignKeyDetails = GetForeignKeyDetails();
-                IEnumerable<RelationshipDetail> associatedRealtionships = foreignKeyDetails
-                    .Where(m => m.ToDetails.ContainerClass.Equals(entity.GetType().FullName)
-                        && m.ToDetails.RelationshipMultiplicity == RelationshipMultiplicity.One);
+                // Get parent property name from navigation details using information from foreign keys
+                IGraphEntityTypeManager entityTypeManager = ContextFactory
+                    .GetEntityTypeManager(relationshipDetail.ToDetails.ContainerClass);
+                string parentPropertyName = entityTypeManager
+                    .GetNavigationDetail()
+                    .Relations
+                    .Where(n => n.PropertyTypeName.Equals(relationshipDetail.FromDetails.ContainerClass)
+                                && n.SourceMultiplicity == relationshipDetail.ToDetails.RelationshipMultiplicity
+                                && n.TargetMultiplicity == relationshipDetail.FromDetails.RelationshipMultiplicity)
+                    .Select(n => n.PropertyName)
+                    .FirstOrDefault();
 
-                foreach (RelationshipDetail relationshipDetail in associatedRealtionships)
+                dynamic parent = entity.GetPropertyValue(parentPropertyName);
+
+                if (parent != null)
                 {
-                    // Get parent property name from navigation details using information from foreign keys
-                    IGraphEntityTypeManager entityTypeManager = ContextFactory
-                        .GetEntityTypeManager(relationshipDetail.ToDetails.ContainerClass);
-                    string parentPropertyName = entityTypeManager
-                        .GetNavigationDetail()
-                        .Relations
-                        .Where(n => n.PropertyTypeName.Equals(relationshipDetail.FromDetails.ContainerClass)
-                                    && n.SourceMultiplicity == relationshipDetail.ToDetails.RelationshipMultiplicity
-                                    && n.TargetMultiplicity == relationshipDetail.FromDetails.RelationshipMultiplicity)
-                        .Select(n => n.PropertyName)
-                        .FirstOrDefault();
-
-                    dynamic parent = entity.GetPropertyValue(parentPropertyName);
-
-                    if (parent != null)
+                    for (int i = 0; i < relationshipDetail.FromDetails.Keys.Count; i++)
                     {
-                        for (int i = 0; i < relationshipDetail.FromDetails.Keys.Count; i++)
-                        {
-                            // Get matching from and to key names
-                            string fromKeyName = relationshipDetail.FromDetails.Keys[i];
-                            string toKeyName = relationshipDetail.ToDetails.Keys[i];
+                        // Get matching from and to key names
+                        string fromKeyName = relationshipDetail.FromDetails.Keys[i];
+                        string toKeyName = relationshipDetail.ToDetails.Keys[i];
 
-                            ReflectionExtensions.SetPropertyValue(parent,
-                                fromKeyName,
-                                matchingEntity.GetPropertyValue(toKeyName));
-                        }
+                        ReflectionExtensions.SetPropertyValue(parent,
+                            fromKeyName,
+                            matchingEntity.GetPropertyValue(toKeyName));
                     }
                 }
-
-                /*
-                *   Description:
-                *     PK value shuold be changed by using 
-                *     context.Entry(entity).Property(pkName).CurrentValue = pkValue;
-                *     becasue setting value by entity.pkName = pkValue will not synchronize
-                *     it with dependent navigation properties automatically but prior method
-                *     will do it.
-                *     Primary key values of entity itself must be changed after
-                *     principal parent keys has been synchronized. Because changing
-                *     primary key value of entity using 
-                *     context.Entry(entity).Property(pkName).CurrentValue = pkValue
-                *     set principal parent navigation property to null.
-                */
-                IEnumerable<string> primaryKeyNames = GetPrimaryKeys();
-
-                var current = Context.Entry(entity);
-                foreach (string primaryKey in primaryKeyNames)
-                {
-                    current.Property(primaryKey).CurrentValue =
-                        matchingEntity.GetPropertyValue(primaryKey);
-                }
             }
-            catch(InvalidOperationException ex)
+
+            /*
+            *   Description:
+            *     PK value shuold be changed by using 
+            *     context.Entry(entity).Property(pkName).CurrentValue = pkValue;
+            *     becasue setting value by entity.pkName = pkValue will not synchronize
+            *     it with dependent navigation properties automatically but prior method
+            *     will do it.
+            *     Primary key values of entity itself must be changed after
+            *     principal parent keys has been synchronized. Because changing
+            *     primary key value of entity using 
+            *     context.Entry(entity).Property(pkName).CurrentValue = pkValue
+            *     set principal parent navigation property to null.
+            */
+            IEnumerable<string> primaryKeyNames = GetPrimaryKeys();
+
+            var current = Context.Entry(entity);
+            foreach (string primaryKey in primaryKeyNames)
             {
-                throw;
+                current.Property(primaryKey).CurrentValue =
+                    matchingEntity.GetPropertyValue(primaryKey);
             }
         }
 
