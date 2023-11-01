@@ -60,7 +60,7 @@ namespace EntityFrameworkCore.GraphManager.ManualGraphManager
             if (entry == null)
                 throw new ArgumentException(string.Format(
                     "No entry was found relevant to entity of type '{0}'.",
-                    entity.GetType().Name));
+                    entity.GetType().FullName));
 
             return new EntryHelper<TEntity>(entry);
         }

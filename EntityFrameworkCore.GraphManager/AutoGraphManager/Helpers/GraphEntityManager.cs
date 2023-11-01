@@ -35,7 +35,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
 
         public string TypeName
         {
-            get { return typeof(TEntity).Name; }
+            get { return typeof(TEntity).FullName; }
         }
         private IContextHelper ContextHelper
         {
@@ -242,7 +242,7 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
                         */
 
                         IGraphEntityTypeManager uniqueSourceTypeManager = ContextFactory
-                            .GetEntityTypeManager(unique.SourceType.Name);
+                            .GetEntityTypeManager(unique.SourceType.FullName);
 
                         bool uniquenessMustBeIgnored = false;
 
@@ -368,8 +368,9 @@ namespace EntityFrameworkCore.GraphManager.AutoGraphManager.Helpers
              * 
              * 
              */
-            IEnumerable<RelationshipDetail> associatedRealtionships = GetForeignKeyDetails()
-                .Where(m => m.ToDetails.ContainerClass.Equals(entity.GetType().Name)
+            var foreignKeyDetails = GetForeignKeyDetails();
+            IEnumerable<RelationshipDetail> associatedRealtionships = foreignKeyDetails
+                .Where(m => m.ToDetails.ContainerClass.Equals(entity.GetType().FullName)
                     && m.ToDetails.RelationshipMultiplicity == RelationshipMultiplicity.One);
 
             foreach (RelationshipDetail relationshipDetail in associatedRealtionships)
