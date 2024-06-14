@@ -1,0 +1,47 @@
+environment:
+  version: 1.2.1
+  versionSuffix:
+  appveyor: true
+
+image: Visual Studio 2022
+
+services: mssql2017
+
+init:
+- ps: $env:buildVersion = "$env:version$env:versionSuffix.$env:appveyor_build_number"
+- ps: $env:nugetVersion = "$env:version$env:versionSuffix"
+- ps: Update-AppveyorBuild -Version $env:buildVersion
+
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+
+dotnet_csproj:
+  patch: true
+  file: 'Reconciler\EfCore\*.csproj'
+  version: '{version}'
+  package_version: '$(version)'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+
+before_build:
+- cmd: nuget restore
+- cmd: dotnet restore
+
+build:
+  verbosity: minimal
+
+after_build:
+- ps: echo "version:" "$env:version"
+- ps: nuget pack Reconciler\Ef6\Reconciler.Ef6.csproj -version "$env:version"
+- ps: dotnet pack -o . Reconciler\EfCore\Reconciler.EfCore.csproj
+
+artifacts:
+- path: '**\Reconciler.Ef6.*.nupkg'
+  name: nuget-package-ef6
+- path: '**\Reconciler.EfCore.*.nupkg'
+  name: nuget-package-efcore
